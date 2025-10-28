@@ -1,0 +1,14 @@
+**/.dockerignore
+**/.env
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/*.*proj.user
+**/bin
+**/obj
+**/uploads
+**/.DS_Store
+**/node_modules
+**/ChatbotAPI/ChatbotAPI
+

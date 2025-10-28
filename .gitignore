@@ -1,0 +1,40 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+.vs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+*.env.local
+
+# Uploaded files
+uploads/
+documents/
+
+# Docker
+docker-compose.override.yml
+
