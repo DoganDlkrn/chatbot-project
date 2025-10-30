@@ -1,10 +1,5 @@
 pipeline {
-    agent {      // <-- BU BLOĞU EKLE
-        docker { 
-            image 'docker:latest' 
-            args '-v /var/run/docker.sock:/var/run/docker.sock' 
-        }
-    }
+    agent any
     
     environment {
         DOCKER_REGISTRY = 'docker.io'

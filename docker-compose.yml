@@ -94,7 +94,7 @@ services:
 
   # Jenkins CI/CD Server
   jenkins:
-    image: jenkins/jenkins:lts
+    image: jenkins/jenkins:lts-jdk17-docker
     container_name: chatbot_jenkins
     privileged: true
     user: root
@@ -106,6 +106,8 @@ services:
     volumes:
       - jenkins_data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/local/bin/docker:/usr/local/bin/docker    
+      - /usr/local/bin/docker-compose:/usr/local/bin/docker-compose
       - ./:/workspace
     networks:
       - chatbot_network
