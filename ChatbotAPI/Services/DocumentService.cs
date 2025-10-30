@@ -173,40 +173,40 @@ public class DocumentService : IDocumentService
         }
     }
 
-    private async Task IndexDocumentAsync(int documentId)
-    {
-        try
+        private async Task IndexDocumentAsync(int documentId)
         {
-            var document = await _context.Documents.FindAsync(documentId);
-            if (document == null)
-                return;
+            try
+            {
+                var document = await _context.Documents.FindAsync(documentId);
+                if (document == null)
+                    return;
 
-            // Extract text based on file type
-            string text = string.Empty;
-            if (document.FileType?.ToLower() == ".pdf")
-            {
-                text = await ExtractTextFromPdfAsync(document.FilePath);
-            }
-            else if (document.FileType?.ToLower() == ".txt")
-            {
-                text = await File.ReadAllTextAsync(document.FilePath);
-            }
+                // Extract text based on file type
+                string text = string.Empty;
+                if (document.FileType?.ToLower() == ".pdf")
+                {
+                    text = await ExtractTextFromPdfAsync(document.FilePath);
+                }
+                else if (document.FileType?.ToLower() == ".txt")
+                {
+                    text = await File.ReadAllTextAsync(document.FilePath);
+                }
 
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                // Send to Haystack for indexing
-                await _haystackService.IndexDocumentAsync(document.Id, document.OriginalFilename, text);
-                
-                document.Indexed = true;
-                await _context.SaveChangesAsync();
-                
-                _logger.LogInformation($"Document {document.Id} indexed successfully");
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    // Send to Haystack for indexing
+                    await _haystackService.IndexDocumentAsync(document.Id, document.OriginalFilename, text);
+                    
+                    document.Indexed = true;
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation($"Document {document.Id} indexed successfully");
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error indexing document: {ex.Message}");
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error indexing document: {ex.Message}");
+            }
         }
     }
-}
 
