@@ -4,7 +4,6 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: chatbot_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -25,7 +24,6 @@ services:
   # Elasticsearch for Haystack
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: chatbot_elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -47,7 +45,6 @@ services:
     build:
       context: ./HaystackService
       dockerfile: Dockerfile
-    container_name: chatbot_haystack
     ports:
       - "8001:8001"
     environment:
@@ -69,7 +66,6 @@ services:
     build:
       context: ./ChatbotAPI
       dockerfile: Dockerfile
-    container_name: chatbot_api
     ports:
       - "5001:8080"
     environment:
@@ -97,7 +93,6 @@ services:
     build:
       context: ./jenkins-docker
       dockerfile: Dockerfile
-    container_name: chatbot_jenkins
     privileged: true
     user: root
     ports:
