@@ -1,17 +1,24 @@
-FROM jenkinsci/blueocean:latest
+FROM jenkins/jenkins:lts
 
 USER root
 
 # Docker CLI ve Docker Compose kurulumu
-RUN apk add --no-cache \
-    docker-cli \
-    docker-compose \
+RUN apt-get update && \
+    apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
     curl \
-    bash
+    gnupg \
+    lsb-release && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli docker-compose-plugin && \
+    rm -rf /var/lib/apt/lists/*
 
 # Jenkins kullanıcısını docker grubuna ekle
-RUN addgroup -S docker 2>/dev/null || true && \
-    addgroup jenkins docker 2>/dev/null || true
+RUN groupadd -f docker && \
+    usermod -aG docker jenkins
 
 USER jenkins
 
