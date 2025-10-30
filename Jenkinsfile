@@ -90,7 +90,10 @@ pipeline {
         
         stage('Deploy') {
             when {
-                branch 'dev'
+                anyOf {
+                    branch 'dev'
+                    branch 'origin/dev'
+                }
             }
             steps {
                 script {
