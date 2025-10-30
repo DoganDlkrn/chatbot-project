@@ -22,3 +22,32 @@ RUN groupadd -f docker && \
 
 USER jenkins
 
+# Skip initial setup wizard
+ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=false"
+
+# Install only essential plugins
+RUN jenkins-plugin-cli --plugins \
+    git:latest \
+    workflow-aggregator:latest \
+    docker-workflow:latest \
+    email-ext:latest \
+    mailer:latest \
+    matrix-project:latest
+
+# Create default admin user
+ENV JENKINS_USER=admin
+ENV JENKINS_PASS=admin123
+
+# Copy init scripts to create admin user
+RUN echo '#!groovy' > /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'import jenkins.model.*' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'import hudson.security.*' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'def instance = Jenkins.getInstance()' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'def hudsonRealm = new HudsonPrivateSecurityRealm(false)' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'hudsonRealm.createAccount("admin", "admin123")' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'instance.setSecurityRealm(hudsonRealm)' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'def strategy = new FullControlOnceLoggedInAuthorizationStrategy()' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'strategy.setAllowAnonymousRead(false)' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'instance.setAuthorizationStrategy(strategy)' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'instance.save()' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy
+

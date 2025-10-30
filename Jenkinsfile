@@ -25,7 +25,7 @@ pipeline {
                     echo "Branch: ${GIT_BRANCH}"
                     echo "Commit: ${GIT_COMMIT}"
                     docker --version
-                    docker-compose --version
+                    docker compose --version
                     echo "Project: jenkins-ci"
                 '''
                 }
@@ -80,7 +80,7 @@ pipeline {
                     echo "📊 Checking database..."
                     sh '''
                         # Ensure PostgreSQL is running
-                        docker-compose -p jenkins-ci up -d postgres
+                        docker compose -p jenkins-ci up -d postgres
                         sleep 10
                         echo "Database is ready"
                     '''
@@ -97,16 +97,16 @@ pipeline {
                     echo "🚀 Deploying application..."
                     sh '''
                         # Stop existing containers
-                        docker-compose -p jenkins-ci down
+                        docker compose -p jenkins-ci down
                         
                         # Start all services
-                        docker-compose -p jenkins-ci up -d
+                        docker compose -p jenkins-ci up -d
                         
                         # Wait for services to be healthy
                         sleep 15
                         
                         # Check if services are running
-                        docker-compose -p jenkins-ci ps
+                        docker compose -p jenkins-ci ps
                     '''
                 }
             }
@@ -195,7 +195,7 @@ pipeline {
                 // Collect logs for debugging
                 sh '''
                     echo "Collecting failure logs..."
-                    docker-compose -p jenkins-ci logs --tail=100 > deployment-failure-logs.txt || echo "No logs available"
+                    docker compose -p jenkins-ci logs --tail=100 > deployment-failure-logs.txt || echo "No logs available"
                 '''
                 
                 // Send failure notification email
