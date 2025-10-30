@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (no port publishing for CI)
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chatbot_db
+    volumes:
+      - postgres_data_ci:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - chatbot_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Elasticsearch for Haystack (no port publishing for CI)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data_ci:/usr/share/elasticsearch/data
+    networks:
+      - chatbot_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Haystack Python Service
+  haystack-service:
+    image: haystack-service:latest
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/chatbot_db
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - chatbot_network
+    restart: unless-stopped
+
+  # C# Chatbot API
+  chatbot-api:
+    image: chatbot-api:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=chatbot_db;Username=postgres;Password=postgres
+      - HaystackService__BaseUrl=http://haystack-service:8001
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      haystack-service:
+        condition: service_started
+    networks:
+      - chatbot_network
+    restart: unless-stopped
+
+networks:
+  chatbot_network:
+    driver: bridge
+
+volumes:
+  postgres_data_ci:
+  elasticsearch_data_ci:
+
