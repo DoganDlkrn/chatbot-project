@@ -94,7 +94,7 @@ services:
 
   # Jenkins CI/CD Server
   jenkins:
-    image: jenkins/jenkins:lts-jdk17-docker
+    image: jenkins/jenkins:jdk17            
     container_name: chatbot_jenkins
     privileged: true
     user: root
