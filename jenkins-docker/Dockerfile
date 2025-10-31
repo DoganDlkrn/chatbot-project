@@ -58,8 +58,9 @@ RUN echo '#!groovy' > /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy &&
     echo 'def inst = Jenkins.getInstance()' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
     echo 'def mailServer = inst.getDescriptor("hudson.plugins.emailext.ExtendedEmailPublisher")' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
     echo 'mailServer.smtpHost = System.getenv("SMTP_HOST") ?: "smtp.gmail.com"' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
-    echo 'mailServer.smtpPort = (System.getenv("SMTP_PORT") ?: "465") as Integer' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
-    echo 'mailServer.useSsl = true' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'def smtpPort = (System.getenv("SMTP_PORT") ?: "465") as Integer' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.smtpPort = smtpPort' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.useSsl = (smtpPort == 465)' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
     echo 'mailServer.smtpUsername = System.getenv("SMTP_USER")' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
     echo 'mailServer.smtpPassword = System.getenv("SMTP_PASSWORD")' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
     echo 'mailServer.charset = "UTF-8"' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
