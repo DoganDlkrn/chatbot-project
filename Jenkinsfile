@@ -216,7 +216,9 @@ pipeline {
                         </body>
                         </html>
                     """,
-                    to: "${NOTIFICATION_EMAIL}",
+                    to: "${env.NOTIFICATION_EMAIL}",
+                    from: "${env.SMTP_USER}",
+                    replyTo: "${env.SMTP_USER}",
                     mimeType: 'text/html',
                     attachLog: true
                 )
