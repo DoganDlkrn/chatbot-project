@@ -120,3 +120,4 @@ NOTIFICATION_EMAIL=admin@example.com
 
 MIT
 
+Test için basit değişiklik
