@@ -8,8 +8,8 @@ pipeline {
     }
     
     triggers {
-        // GitHub webhook trigger - instant deployment on push
-        githubPush()
+        // Poll SCM every 1 minute: check for changes in Git repo
+        pollSCM('* * * * *')
     }
     
     stages {
