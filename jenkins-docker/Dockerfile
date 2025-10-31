@@ -35,8 +35,8 @@ RUN jenkins-plugin-cli --plugins \
     matrix-project:latest
 
 # Create default admin user
-ENV JENKINS_USER=admin
-ENV JENKINS_PASS=admin123
+ENV JENKINS_USER=Dogandlkrn
+ENV JENKINS_PASS=Dogandlkrn61
 
 # Copy init scripts to create admin user
 RUN echo '#!groovy' > /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
@@ -44,10 +44,27 @@ RUN echo '#!groovy' > /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy &
     echo 'import hudson.security.*' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
     echo 'def instance = Jenkins.getInstance()' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
     echo 'def hudsonRealm = new HudsonPrivateSecurityRealm(false)' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
-    echo 'hudsonRealm.createAccount("admin", "admin123")' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
+    echo 'hudsonRealm.createAccount("Dogandlkrn", "Dogandlkrn61")' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
     echo 'instance.setSecurityRealm(hudsonRealm)' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
     echo 'def strategy = new FullControlOnceLoggedInAuthorizationStrategy()' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
     echo 'strategy.setAllowAnonymousRead(false)' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
     echo 'instance.setAuthorizationStrategy(strategy)' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy && \
     echo 'instance.save()' >> /usr/share/jenkins/ref/init.groovy.d/create-admin.groovy
+
+# Configure SMTP for email notifications
+RUN echo '#!groovy' > /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'import jenkins.model.*' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'import hudson.plugins.emailext.ExtendedEmailPublisher' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'def inst = Jenkins.getInstance()' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'def mailServer = inst.getDescriptor("hudson.plugins.emailext.ExtendedEmailPublisher")' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.smtpHost = System.getenv("SMTP_HOST") ?: "smtp.gmail.com"' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.smtpPort = (System.getenv("SMTP_PORT") ?: "465") as Integer' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.useSsl = true' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.smtpUsername = System.getenv("SMTP_USER")' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.smtpPassword = System.getenv("SMTP_PASSWORD")' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.charset = "UTF-8"' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.defaultContentType = "text/html"' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'mailServer.save()' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'inst.save()' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy && \
+    echo 'println("Email Extension SMTP configured successfully")' >> /usr/share/jenkins/ref/init.groovy.d/config-smtp.groovy
 
