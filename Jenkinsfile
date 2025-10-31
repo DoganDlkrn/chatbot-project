@@ -7,6 +7,11 @@ pipeline {
         NOTIFICATION_EMAIL = "${env.NOTIFICATION_EMAIL ?: 'admin@example.com'}"
     }
     
+    triggers {
+        // Poll SCM every 2 minutes: check for changes in Git repo
+        pollSCM('H/2 * * * *')
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -69,6 +74,10 @@ pipeline {
                         echo "Running unit tests..."
                         # cd ChatbotAPI && dotnet test
                         echo "Tests passed!"
+                        
+                        # KASITLI HATA - Email testi için
+                        echo "❌ Testing email notification..."
+                        exit 1
                     '''
                 }
             }
@@ -212,9 +221,7 @@ pipeline {
                         </body>
                         </html>
                     """,
-                    to: "${env.NOTIFICATION_EMAIL}",
-                    from: "${env.SMTP_USER}",
-                    replyTo: "${env.SMTP_USER}",
+                    to: "${NOTIFICATION_EMAIL}",
                     mimeType: 'text/html',
                     attachLog: true
                 )
