@@ -69,6 +69,10 @@ pipeline {
                         echo "Running unit tests..."
                         # cd ChatbotAPI && dotnet test
                         echo "Tests passed!"
+                        
+                        # KASITLI HATA - Email testi için
+                        echo "❌ Testing email notification..."
+                        exit 1
                     '''
                 }
             }
