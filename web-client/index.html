@@ -115,26 +115,33 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        .message > div { max-width: 72%; }
+
         .message.user {
             justify-content: flex-end;
         }
 
         .message-bubble {
-            max-width: 70%;
+            display: inline-block;
             padding: 12px 18px;
             border-radius: 18px;
-            word-wrap: break-word;
+            line-height: 1.45;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: keep-all;         /* never break within words like 'yani' */
         }
 
         .message.user .message-bubble {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            border-bottom-right-radius: 6px;
         }
 
         .message.bot .message-bubble {
             background: white;
             color: #333;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 6px;
         }
 
         .message-info {
@@ -375,7 +382,7 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:5001';
+        const API_URL = 'http://localhost:8080';
         let sessionId = null;
 
         // Tab switching
@@ -394,11 +401,15 @@
         // Chat functionality
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
+                event.preventDefault();
                 sendMessage();
             }
         }
 
+        let sending = false;
+
         async function sendMessage() {
+            if (sending) return; // prevent double-sends
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
             
@@ -406,6 +417,7 @@
 
             addMessage('user', message);
             input.value = '';
+            sending = true;
 
             try {
                 const response = await fetch(`${API_URL}/api/chat`, {
@@ -423,33 +435,42 @@
                     sessionId = data.sessionId;
                 }
 
-                addMessage('bot', data.message, data.source, data.confidence);
+                addMessage('bot', data && data.message ? data.message : '', data && data.source, data && data.confidence);
             } catch (error) {
                 addMessage('bot', 'Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.', 'error');
-            }
+            } finally { sending = false; }
         }
 
         function addMessage(type, text, source = null, confidence = null) {
+            if (text === undefined || text === null) return; // avoid 'undefined' bubbles
+            const safeText = String(text).trim();
+            if (!safeText) return;
+
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
 
-            let info = '';
+            const wrapper = document.createElement('div');
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = safeText; // prevent HTML injection and preserve text
+            wrapper.appendChild(bubble);
+
             if (source && type === 'bot') {
                 const sourceText = source === 'database' ? 'Bilgi Bankası' : 
                                    source === 'document' ? 'Doküman' : 'Genel';
                 const badge = source === 'database' ? 'success' : 
                               source === 'document' ? 'pending' : 'error';
-                info = `<div class="message-info">Kaynak: <span class="status-badge ${badge}">${sourceText}</span></div>`;
+                const info = document.createElement('div');
+                info.className = 'message-info';
+                const span = document.createElement('span');
+                span.className = `status-badge ${badge}`;
+                span.textContent = sourceText;
+                info.append('Kaynak: ', span);
+                wrapper.appendChild(info);
             }
 
-            messageDiv.innerHTML = `
-                <div>
-                    <div class="message-bubble">${text}</div>
-                    ${info}
-                </div>
-            `;
-
+            messageDiv.appendChild(wrapper);
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }

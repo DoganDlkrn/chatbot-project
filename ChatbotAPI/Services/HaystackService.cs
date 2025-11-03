@@ -19,7 +19,9 @@ public class HaystackService : IHaystackService
     {
         try
         {
-            var json = JsonSerializer.Serialize(request);
+            // FastAPI expects snake_case keys: { "query": ..., "top_k": ... }
+            var payload = new { query = request.Query, top_k = request.TopK };
+            var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             
             var response = await _httpClient.PostAsync("/api/query", content);

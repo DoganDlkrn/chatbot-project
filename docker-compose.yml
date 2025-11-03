@@ -67,7 +67,7 @@ services:
       context: ./ChatbotAPI
       dockerfile: Dockerfile
     ports:
-      - "5001:8080"
+      - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=chatbot_db;Username=postgres;Password=postgres

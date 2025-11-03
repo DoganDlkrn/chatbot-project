@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 using UglyToad.PdfPig;
+using UglyToad.PdfPig.Content;
 
 namespace ChatbotAPI.Services;
 
@@ -81,8 +82,8 @@ public class DocumentService : IDocumentService
             _context.Documents.Add(document);
             await _context.SaveChangesAsync();
 
-            // Index document asynchronously
-            _ = Task.Run(async () => await IndexDocumentAsync(document.Id));
+            // Index document immediately (avoids disposed DbContext issues)
+            await IndexDocumentAsync(document.Id);
 
             return document;
         }
@@ -136,17 +137,40 @@ public class DocumentService : IDocumentService
     {
         try
         {
-            var text = new StringBuilder();
-            
+            var builder = new StringBuilder();
+
             using (var document = PdfDocument.Open(filePath))
             {
                 foreach (var page in document.GetPages())
                 {
-                    text.AppendLine(page.Text);
+                    // Reconstruct text using words to preserve spacing
+                    var words = page.GetWords();
+                    double? previousBaseline = null;
+                    foreach (var word in words)
+                    {
+                        if (previousBaseline.HasValue)
+                        {
+                            var delta = Math.Abs(word.BoundingBox.Bottom - previousBaseline.Value);
+                            if (delta > 5) // new line heuristic
+                            {
+                                builder.AppendLine();
+                            }
+                            else
+                            {
+                                builder.Append(' ');
+                            }
+                        }
+
+                        builder.Append(word.Text);
+                        previousBaseline = word.BoundingBox.Bottom;
+                    }
+
+                    builder.AppendLine();
+                    builder.AppendLine();
                 }
             }
 
-            var extractedText = text.ToString();
+            var extractedText = NormalizePdfText(builder.ToString());
             if (string.IsNullOrWhiteSpace(extractedText))
             {
                 return "PDF yüklendi ancak metin çıkarılamadı. Belge sadece görsel içerebilir.";
@@ -159,6 +183,24 @@ public class DocumentService : IDocumentService
             _logger.LogError($"Error extracting text from PDF: {ex.Message}");
             return await Task.FromResult($"PDF metin çıkarma hatası: {ex.Message}");
         }
+    }
+
+    private static string NormalizePdfText(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+
+        // Common ligatures and artifacts
+        var normalized = input
+            .Replace("\uFB01", "fi") // ﬁ
+            .Replace("\uFB02", "fl") // ﬂ
+            .Replace("\u00A0", " ")  // non‑breaking space
+            .Replace("\u200B", "");   // zero‑width space
+
+        // Collapse excessive whitespace
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "[\t ]+", " ");
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "\n{3,}", "\n\n");
+
+        return normalized.Trim();
     }
 
     private async Task<string> CalculateFileHashAsync(string filePath)
@@ -194,12 +236,16 @@ public class DocumentService : IDocumentService
 
                 if (!string.IsNullOrWhiteSpace(text))
                 {
-                    // Send to Haystack for indexing
-                    await _haystackService.IndexDocumentAsync(document.Id, document.OriginalFilename, text);
-                    
+                    // Split into overlapping chunks to improve retrieval quality
+                    foreach (var (chunk, index) in SplitIntoChunks(text, 900, 120).Select((c, i) => (c, i)))
+                    {
+                        var chunkName = $"{document.OriginalFilename}#part-{index+1}";
+                        await _haystackService.IndexDocumentAsync(document.Id, chunkName, chunk);
+                    }
+
                     document.Indexed = true;
                     await _context.SaveChangesAsync();
-                    
+
                     _logger.LogInformation($"Document {document.Id} indexed successfully");
                 }
             }
@@ -207,6 +253,50 @@ public class DocumentService : IDocumentService
             {
                 _logger.LogError($"Error indexing document: {ex.Message}");
             }
+        }
+
+        private static IEnumerable<string> SplitIntoChunks(string text, int chunkSize, int overlap)
+        {
+            if (string.IsNullOrWhiteSpace(text)) yield break;
+
+            var normalized = text.Replace("\r\n", "\n");
+            var paragraphs = normalized.Split('\n');
+
+            var buffer = new StringBuilder();
+            foreach (var para in paragraphs)
+            {
+                var p = para.Trim();
+                if (p.Length == 0) continue;
+
+                if (buffer.Length + p.Length + 1 <= chunkSize)
+                {
+                    if (buffer.Length > 0) buffer.Append('\n');
+                    buffer.Append(p);
+                    continue;
+                }
+
+                // emit current chunk
+                var chunk = buffer.ToString();
+                if (chunk.Length > 0) yield return chunk;
+
+                // start next chunk with overlap tail
+                if (chunk.Length > 0)
+                {
+                    var start = Math.Max(0, chunk.Length - overlap);
+                    buffer.Clear();
+                    buffer.Append(chunk.AsSpan(start));
+                }
+                else
+                {
+                    buffer.Clear();
+                }
+
+                if (buffer.Length > 0) buffer.Append('\n');
+                buffer.Append(p);
+            }
+
+            var last = buffer.ToString();
+            if (last.Length > 0) yield return last;
         }
     }
 

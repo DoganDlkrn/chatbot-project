@@ -56,7 +56,7 @@ public class ChatService : IChatService
             // Try to find answer in knowledge base first
             var knowledgeAnswer = await SearchKnowledgeBaseAsync(request.Message);
             
-            if (knowledgeAnswer != null)
+                if (knowledgeAnswer != null)
             {
                 var botMessage = new ChatMessage
                 {
@@ -64,17 +64,17 @@ public class ChatService : IChatService
                     MessageType = "bot",
                     Message = knowledgeAnswer.Answer,
                     Source = "database",
-                    Confidence = 95.0m
+                        Confidence = 0.95m
                 };
                 _context.ChatMessages.Add(botMessage);
                 await _context.SaveChangesAsync();
 
-                return new ChatResponse
+                    return new ChatResponse
                 {
                     SessionId = sessionId,
                     Message = knowledgeAnswer.Answer,
                     Source = "database",
-                    Confidence = 95.0m
+                        Confidence = 0.95m
                 };
             }
 
@@ -84,10 +84,10 @@ public class ChatService : IChatService
                 var haystackResponse = await _haystackService.QueryAsync(new HaystackRequest
                 {
                     Query = request.Message,
-                    TopK = 3
+                    TopK = 5
                 });
 
-                if (haystackResponse != null && haystackResponse.Confidence > 0.5m)
+                if (haystackResponse != null && !string.IsNullOrWhiteSpace(haystackResponse.Answer))
                 {
                     var botMessage = new ChatMessage
                     {
@@ -95,7 +95,7 @@ public class ChatService : IChatService
                         MessageType = "bot",
                         Message = haystackResponse.Answer,
                         Source = "document",
-                        Confidence = haystackResponse.Confidence * 100
+                        Confidence = Math.Clamp((decimal)haystackResponse.Confidence, 0m, 1m)
                     };
                     _context.ChatMessages.Add(botMessage);
                     await _context.SaveChangesAsync();
@@ -105,7 +105,7 @@ public class ChatService : IChatService
                         SessionId = sessionId,
                         Message = haystackResponse.Answer,
                         Source = "document",
-                        Confidence = haystackResponse.Confidence * 100
+                        Confidence = Math.Clamp((decimal)haystackResponse.Confidence, 0m, 1m)
                     };
                 }
             }
@@ -122,7 +122,7 @@ public class ChatService : IChatService
                 MessageType = "bot",
                 Message = defaultResponse,
                 Source = "none",
-                Confidence = 0
+                Confidence = 0m
             };
             _context.ChatMessages.Add(defaultMessage);
             await _context.SaveChangesAsync();

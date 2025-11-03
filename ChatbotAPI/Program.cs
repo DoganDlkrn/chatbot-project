@@ -18,7 +18,6 @@ builder.Services.AddDbContext<ChatbotDbContext>(options =>
 // Custom Services
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
-builder.Services.AddScoped<IHaystackService, HaystackService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 // CORS
