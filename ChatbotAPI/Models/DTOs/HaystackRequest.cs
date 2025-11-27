@@ -1,9 +1,16 @@
 namespace ChatbotAPI.Models.DTOs;
 
+public class HaystackHistoryItem
+{
+    public string Role { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+}
+
 public class HaystackRequest
 {
     public string Query { get; set; } = string.Empty;
     public int TopK { get; set; } = 3;
+    public List<HaystackHistoryItem>? History { get; set; }
 }
 
 public class HaystackResponse

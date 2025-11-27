@@ -6,4 +6,7 @@ pydantic==2.5.3
 python-multipart==0.0.6
 psycopg2-binary==2.9.9
 sqlalchemy==2.0.25
+openai==1.51.0
+numpy==1.26.4
+faiss-cpu==1.7.4
 

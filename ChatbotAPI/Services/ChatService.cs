@@ -81,10 +81,17 @@ public class ChatService : IChatService
             // Try Haystack for document search
             try
             {
+                var haystackHistory = request.History?.Select(h => new HaystackHistoryItem
+                {
+                    Role = h.Role,
+                    Content = h.Content
+                }).ToList();
+
                 var haystackResponse = await _haystackService.QueryAsync(new HaystackRequest
                 {
                     Query = request.Message,
-                    TopK = 5
+                    TopK = 5,
+                    History = haystackHistory
                 });
 
                 if (haystackResponse != null && !string.IsNullOrWhiteSpace(haystackResponse.Answer))
@@ -94,7 +101,7 @@ public class ChatService : IChatService
                         SessionId = sessionId,
                         MessageType = "bot",
                         Message = haystackResponse.Answer,
-                        Source = "document",
+                        Source = string.IsNullOrWhiteSpace(haystackResponse.Source) ? "document" : haystackResponse.Source,
                         Confidence = Math.Clamp((decimal)haystackResponse.Confidence, 0m, 1m)
                     };
                     _context.ChatMessages.Add(botMessage);
@@ -104,7 +111,7 @@ public class ChatService : IChatService
                     {
                         SessionId = sessionId,
                         Message = haystackResponse.Answer,
-                        Source = "document",
+                        Source = string.IsNullOrWhiteSpace(haystackResponse.Source) ? "document" : haystackResponse.Source,
                         Confidence = Math.Clamp((decimal)haystackResponse.Confidence, 0m, 1m)
                     };
                 }
@@ -152,6 +159,49 @@ public class ChatService : IChatService
             .FirstOrDefaultAsync();
 
         return knowledge;
+    }
+
+    public async Task<bool> TeachAsync(TeachRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.Question) || string.IsNullOrWhiteSpace(request.Answer))
+            {
+                return false;
+            }
+
+            var kb = new KnowledgeBase
+            {
+                Question = request.Question.Trim(),
+                Answer = request.Answer.Trim(),
+                Category = request.Category,
+                Keywords = request.Keywords,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.KnowledgeBase.Add(kb);
+            await _context.SaveChangesAsync();
+
+            // Also index into Haystack as a lightweight synthetic document so retriever/LLM görebilsin
+            var syntheticId = 100000 + kb.Id; // avoid collision with real docs
+            var filename = $"knowledge:{kb.Category ?? "general"}#{kb.Id}";
+            var content = $"Soru: {kb.Question}\nCevap: {kb.Answer}";
+            try
+            {
+                await _haystackService.IndexDocumentAsync(syntheticId, filename, content);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Failed to index KB item {kb.Id} into Haystack: {ex.Message}");
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"TeachAsync failed: {ex.Message}");
+            return false;
+        }
     }
 }
 

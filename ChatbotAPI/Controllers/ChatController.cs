@@ -37,6 +37,22 @@ public class ChatController : ControllerBase
         }
     }
 
+    [HttpPost("teach")]
+    public async Task<IActionResult> Teach([FromBody] TeachRequest request)
+    {
+        try
+        {
+            var ok = await _chatService.TeachAsync(request);
+            if (!ok) return BadRequest(new { error = "question and answer are required" });
+            return Ok(new { status = "ok" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error in teach: {ex.Message}");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
     [HttpGet("health")]
     public IActionResult Health()
     {

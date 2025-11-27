@@ -50,16 +50,56 @@ services:
     environment:
       - ELASTICSEARCH_HOST=elasticsearch
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/chatbot_db
+      # Chat Generation (Local Ollama)
+      - LLM_API_KEY=ollama
+      - LLM_BASE_URL=http://ollama:11434/v1
+      - LLM_MODEL=gemma3:1b
+      # Embeddings via Ollama (nomic-embed-text)
+      - EMBED_API_KEY=ollama
+      - EMBED_BASE_URL=http://ollama:11434/v1
+      - LLM_EMBEDDINGS_MODEL=nomic-embed-text
+      # FAISS Persistence
+      - USE_FAISS=true
+      - FAISS_INDEX_PATH=/data/vector/faiss.index
+      - FAISS_CONFIG_PATH=/data/vector/faiss_config.json
+      - FAISS_DOC_PATH=/data/vector/faiss_store.db
     volumes:
       - ./uploads:/app/uploads
+      - ./vector_store:/data/vector
     depends_on:
       elasticsearch:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      ollama:
+        condition: service_started
     networks:
       - chatbot_network
     restart: unless-stopped
+
+  # Local LLM Service (Ollama)
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - chatbot_network
+    restart: always
+
+  # Init container to pull the model automatically
+  ollama-init:
+    image: ollama/ollama:latest
+    environment:
+      - OLLAMA_HOST=ollama:11434
+    networks:
+      - chatbot_network
+    entrypoint: /bin/sh
+    command: -c "echo 'Waiting for Ollama...'; sleep 5; echo 'Pulling gemma3:1b...'; ollama pull gemma3:1b; echo 'Model pulled!'"
+    depends_on:
+      - ollama
+
 
   # C# Chatbot API
   chatbot-api:
@@ -122,4 +162,5 @@ volumes:
   postgres_data:
   elasticsearch_data:
   jenkins_data:
+  ollama_data:
 
